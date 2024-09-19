@@ -5,14 +5,17 @@ import sys
 #py Simple_Paging_Simulation.py 65536 4096 input_requests_1.txt
 
 #Function that checks if a string is castable to an int (returns boolean)
+#------------------------------------------------------------------------
 def isInt(string):
      try:
         int(string)
         return True
      except:
          return False
+#------------------------------------------------------------------------
 
-#Function that splits processes into pages, and returns them in a list 
+#Function that splits processes into pages, and returns them in a list
+#--------------------------------------------------------------------- 
 def generate_pages(job_number, job_size, page_size):
     number_of_pages = math.ceil(int(job_size)/int(page_size))
     print("Number of pages: {}".format(number_of_pages))
@@ -25,8 +28,10 @@ def generate_pages(job_number, job_size, page_size):
     page_list.append(last_page_internal_frag)
     
     return(page_list)
+#---------------------------------------------------------------------
 
 #Function that adds a new process to main memory. Returns free frames so it can be reassigned outside of the function since it is immutable
+#------------------------------------------------------------------------------------------------------------------------------------------
 def add_new_process(existing_jobs, job_info, memory_info_list, internal_fragmentation, jobs_to_pages_map, free_frames, page_tables, job_age_queue, main_memory, secondary_memory):
     existing_jobs.append(job_info[0])
     job_pages = generate_pages(job_info[0], job_info[1], memory_info_list[1])
@@ -135,8 +140,10 @@ def add_new_process(existing_jobs, job_info, memory_info_list, internal_fragment
         print(free_frames)
 
     return(free_frames)
+#------------------------------------------------------------------------------------------------------------------------------------------
 
 #Function that removes a process from memory. Returns free frames to be modified outside of the function since it's immutable
+#----------------------------------------------------------------------------------------------------------------------------
 def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory):
     in_main_memory = False
                     
@@ -213,8 +220,10 @@ def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free
     print(free_frames)
 
     return(free_frames)
+#----------------------------------------------------------------------------------------------------------------------------
 
 #Function that suspends a process in main memory (moves it to secondary memory). Returns free_frames so it can be modified outside of function since it's immutable
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def suspend_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info):
     
     #If the user tries to suspend a process that is already suspended, reject request
@@ -256,8 +265,10 @@ def suspend_process(main_memory, secondary_memory, page_tables, internal_fragmen
         print(free_frames)
 
     return(free_frames)
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #Function that puts a suspended job back in main memory. Returns free_frames so it can be updated outside of the function since it's immutable
+#---------------------------------------------------------------------------------------------------------------------------------------------
 def resume_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info):
     
     #If job is in main memory, reject request
@@ -367,8 +378,10 @@ def resume_process(main_memory, secondary_memory, page_tables, internal_fragment
         print(free_frames)
 
         return(free_frames)
+#---------------------------------------------------------------------------------------------------------------------------------------------
 
 #Function that reads job requests and modifies memory appropriately according to the simple paging system
+#--------------------------------------------------------------------------------------------------------
 def main_loop(memory_info_list):
     number_of_frames = int(int(memory_info_list[0])/int(memory_info_list[1]))
     main_memory = np.full(number_of_frames, None)
@@ -435,7 +448,7 @@ def main_loop(memory_info_list):
 
                 #If process is too large to fit in main memory, reject the process
                 elif(int(job_info[1]) > (len(main_memory) * int(memory_info_list[1]))):
-                    print("ERROR: JOB IS TOO LARGE FOR MAIN MEMORY")
+                    print("ERROR: PROCESS IS TOO LARGE FOR MAIN MEMORY")
 
                 #If job doesn't yet exist and command 0,-1, or -2 is called, reject request
                 elif(job_info[0] not in existing_jobs and (int(job_info[1]) == 0 or int(job_info[1]) == -1 or int(job_info[1]) == -2)):
@@ -454,7 +467,7 @@ def main_loop(memory_info_list):
 
                     #If job is already in system and is added to memory by user, reject
                     if(int(job_info[1]) != 0 and int(job_info[1]) != -1 and int(job_info[1]) != -2):
-                        print("ERROR: JOB IS ALREADY IN THE MEMORY SYSTEM")
+                        print("ERROR: PROCESS IS ALREADY IN THE MEMORY SYSTEM")
 
                     #If command is 0, remove the job from memory
                     elif(int(job_info[1]) == 0):
@@ -467,7 +480,6 @@ def main_loop(memory_info_list):
                     #If command is -2, put suspended job back into main memory
                     elif(int(job_info[1]) == -2):
                         free_frames = resume_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
-                        break
             
             #Switch to dynamic user requests by deleting file from the list
             memory_info_list.pop()
@@ -502,14 +514,42 @@ def main_loop(memory_info_list):
             elif(isInt(request_list[1]) == False):
                print("ERROR: COMMAND IS NOT AN INTEGER")
             
-            #Finish other possibilities
-               
-               
+            #If process is too large for main memory, reject process
+            elif(int(request_list[1]) > (len(memory_info_list) * int(memory_info_list[1]))):
+                print("ERROR: PROCESS IS TOO LARGE FOR MAIN MEMORY") 
 
-            
-               
- 
+            #If process does not exist and the user issues command 0,-1, or -2, reject request
+            elif(request_list[0] not in existing_jobs and (request_list[1] == 0 or request_list[1] == -1 or request_list[1] == -2)):
+                print("ERROR: CANNOT EXECUTE COMMAND. PROCESS DOES NOT CURRENTLY EXIST")
+
+            #If command is less than -2, reject request
+            elif(int(request_list[1]) < -2):
+                print("ERROR: INVALID COMMAND")
+
+            #If new process is being added, perform necessary actions to put it into main memory by calling add_new_process()
+            elif(request_list[0] not in existing_jobs):
+                free_frames = add_new_process(existing_jobs, job_info, memory_info_list, internal_fragmentation, jobs_to_pages_map, free_frames, page_tables, job_age_queue, main_memory, secondary_memory)
+
+            #Carries out commands 0,-1, and -2
+            elif(request_list[0] in existing_jobs):
+
+                #If they try to add an already existing process, reject request
+                if(int(request_list[1]) != 0 and int(request_list[1]) != -1 and int(request_list[1]) != -2):
+                    print("ERROR: PROCESS IS ALREADY IN THE MEMORY SYSTEM")
+
+                #If command is 0, remove process from memory
+                elif(int(request_list[1]) == 0):
+                    free_frames = remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory)
+                
+                elif(int(request_list[1]) == -1):
+                    free_frames = suspend_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
+
+                elif(int(request_list[1]) == -2):
+                    free_frames = resume_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
+#--------------------------------------------------------------------------------------------------------
+
 #Obtain memory size, page size, and job requests file from user
+#--------------------------------------------------------------
 proceed = True
 memory_info_list = []
 print("Welcome to Paging Simulator\n---------------------------")
@@ -546,3 +586,4 @@ if(proceed == True):
         memory_info_list.append(sys.argv[2])
         memory_info_list.append(sys.argv[3])
         main_loop(memory_info_list)
+#--------------------------------------------------------------
