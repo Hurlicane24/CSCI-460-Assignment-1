@@ -1,0 +1,25 @@
+print("Welcome to Simple Paging Simulator\n----------------------------------\nPlease enter the following to start the simulation: (./page_system_simulator, memory size, page size, job requests file): ")
+memory_info_string = input("")
+memory_info_list = memory_info_string.split(" ")
+
+#Error checking for invalid input
+while(memory_info_list[0] != "./page_system_simulator" or len(memory_info_list) != 4 or ".txt" not in memory_info_list[3] or (isInt(memory_info_list[1]) == False or isInt(memory_info_list[2]) == False) or (int(memory_info_list[1]) % int(memory_info_list[2]) != 0)):
+    #Check if the startup command was typed correctly
+    if(memory_info_list[0] != "./page_system_simulator"):
+        memory_info_list = input("\nInvalid command. You must enter the simulator startup command './page_system_simulator'. Please enter (./page_system_simulator, memory size, page size, job requests file): ").split(" ")
+
+    #Check if 4 arguments are present (startup command, memory size, page size, job requests file)
+    elif(len(memory_info_list) != 4):
+        memory_info_list = input("\nFour arguments are requried (startup command, memory size, page size, txt file). Please enter (./page_system_simulator, memory size, page size, job requests file): ").split(" ")
+
+    #Check if job requests file has the .txt file extension
+    elif(".txt" not in memory_info_list[3]):
+        memory_info_list = input("\nYour filename does not have the file extension txt. Please enter (./page_system_simulator, memory size, page size, job requests file): ").split(" ")
+
+    #Check if the memory size and page size are integers
+    elif(isInt(memory_info_list[1]) == False or isInt(memory_info_list[2]) == False):
+        memory_info_list = input("\nEither you memory size or page size is not an integer. Please enter (./page_system_simulator, memory size, page size, job requests file): ").split(" ")
+
+    #Check if the page size is a factor of the memory size
+    elif(int(memory_info_list[1]) % int(memory_info_list[2]) != 0):
+        memory_info_list = input("\nYour page size must be a factor of your memory size. Please enter (./page_system_simulator, memory size, page size, job requests file): ").split(" ")
