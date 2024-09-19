@@ -257,6 +257,117 @@ def suspend_process(main_memory, secondary_memory, page_tables, internal_fragmen
 
     return(free_frames)
 
+#Function that puts a suspended job back in main memory. Returns free_frames so it can be updated outside of the function since it's immutable
+def resume_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info):
+    
+    #If job is in main memory, reject request
+    if("page_{},1".format(job_info[0]) in main_memory):
+        print("ERROR: JOB IS ALREADY IN MAIN MEMORY")
+
+    #If process cannot fit in main memory, suspend oldest process(es) to make room
+    elif(len(jobs_to_pages_map[job_info[0]]) > free_frames):
+        minimum_frames_to_swap = len(jobs_to_pages_map[job_info[0]]) - free_frames
+        frames_swapped = 0
+
+        #While we need to swap more frames, keep removing processes
+        while(frames_swapped < minimum_frames_to_swap):
+            job_move = job_age_queue.popleft()
+            pages_to_swap = jobs_to_pages_map[job_move]
+
+            #Remove pages that need to be swapped from main memory
+            index = 0
+            for frame in main_memory:
+                if(frame in pages_to_swap):
+                    main_memory[index] = None
+                    free_frames += 1
+                    frames_swapped += 1
+                index += 1
+            
+            #Add swapped pages to secondary memory
+            for page in pages_to_swap:
+                secondary_memory.append(page)
+            
+            #Map swapped pages to none in page table
+            for page in page_tables[job_move]:
+                page_tables[job_move][page] = None
+            
+        #Add suspended job to main memory
+
+        #Remove pages from secondary memory
+        for page in jobs_to_pages_map[job_info[0]]:
+            secondary_memory.remove(page)
+
+        #Add pages to main memory, update page table, update free frames
+        job_index = 0
+        for i in range(len(main_memory)):
+            if(main_memory[i] == None):
+                if(job_index == len(jobs_to_pages_map[job_info[0]])):
+                    break
+                else:
+                    main_memory[i] = jobs_to_pages_map[job_info[0]][job_index]
+                    page_tables[job_info[0]][jobs_to_pages_map[job_info[0]][job_index]] = i
+                    job_index += 1
+                    free_frames -= 1
+        
+        #Add resumed process to job age queue
+        job_age_queue.append(job_info[0])
+
+        print("MAIN MEMORY:")
+        print(main_memory)
+        print("\nSECONDARY MEMORY:")
+        print(secondary_memory)
+        print("\nPAGE TABLES:")
+        print(page_tables)
+        print("\nINTERNAL FRAGMENTATION:")
+        print(internal_fragmentation)
+        print("\nJOB AGE QUEUE:")
+        print(job_age_queue)
+        print("\nJOB TO PAGES MAP:")
+        print(jobs_to_pages_map)
+        print("\nFREE FRAMES:")
+        print(free_frames)
+
+        return(free_frames)
+
+    #If process can fit, simply move it to main memory
+    else:
+        
+        #Remove pages from secondary memory
+        for page in jobs_to_pages_map[job_info[0]]:
+            secondary_memory.remove(page)
+
+        #Add pages to main memory, update page table, update free frames
+        job_index = 0
+        for i in range(len(main_memory)):
+            if(main_memory[i] == None):
+                if(job_index == len(jobs_to_pages_map[job_info[0]])):
+                    break
+                else:
+                    main_memory[i] = jobs_to_pages_map[job_info[0]][job_index]
+                    page_tables[job_info[0]][jobs_to_pages_map[job_info[0]][job_index]] = i
+                    job_index += 1
+                    free_frames -= 1
+        
+        #Add resumed process to job age queue
+        job_age_queue.append(job_info[0])
+
+        print("MAIN MEMORY:")
+        print(main_memory)
+        print("\nSECONDARY MEMORY:")
+        print(secondary_memory)
+        print("\nPAGE TABLES:")
+        print(page_tables)
+        print("\nINTERNAL FRAGMENTATION:")
+        print(internal_fragmentation)
+        print("\nJOB AGE QUEUE:")
+        print(job_age_queue)
+        print("\nJOB TO PAGES MAP:")
+        print(jobs_to_pages_map)
+        print("\nFREE FRAMES:")
+        print(free_frames)
+
+        return(free_frames)
+
 #Function that reads job requests and modifies memory appropriately according to the simple paging system
 def main_loop(memory_info_list):
     number_of_frames = int(int(memory_info_list[0])/int(memory_info_list[1]))
@@ -336,10 +447,11 @@ def main_loop(memory_info_list):
                     #If command is -1, move job to secondary memory
                     elif(int(job_info[1]) == -1):
                         free_frames = suspend_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
-                        break
-
+                    
+                    #If command is -2, put suspended job back into main memory
                     elif(int(job_info[1]) == -2):
-                        pass
+                        free_frames = resume_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
+                        break
             
             #Switch to dynamic user requests by deleting file from the list
             memory_info_list.pop()
