@@ -26,8 +26,193 @@ def generate_pages(job_number, job_size, page_size):
     
     return(page_list)
 
-def func():
-    pass
+#Function that adds a new process to main memory. Returns free frames so it can be reassigned outside of the function since it is immutable
+def add_new_process(existing_jobs, job_info, memory_info_list, internal_fragmentation, jobs_to_pages_map, free_frames, page_tables, job_age_queue, main_memory, secondary_memory):
+    existing_jobs.append(job_info[0])
+    job_pages = generate_pages(job_info[0], job_info[1], memory_info_list[1])
+
+    #Map each page to its corresponding internal fragmentation
+    for i in range(len(job_pages) - 1):
+        if(i < len(job_pages) - 2):
+            internal_fragmentation[job_pages[i]] = 0
+        else:
+            internal_fragmentation[job_pages[i]] = job_pages[len(job_pages) - 1]
+
+    #Map the job to a list of its pages
+    del job_pages[len(job_pages) - 1]
+    jobs_to_pages_map[job_info[0]] = job_pages
+
+    #If process can fit into free frames, put pages into memory immediately
+    if(len(job_pages) <= free_frames):
+        job_index = 0
+        page_table = {}
+        for i in range(len(main_memory)):
+            if(main_memory[i] == None):
+                if(job_index == len(job_pages)):
+                    break
+                else:
+                    main_memory[i] = job_pages[job_index]
+                    page_table[job_pages[job_index]] = i
+                    job_index += 1
+        page_tables[job_info[0]] = page_table
+
+        free_frames -= len(job_pages)
+        job_age_queue.append(job_info[0])
+        print("MAIN MEMORY:")
+        print(main_memory)
+        print("\nSECONDARY MEMORY:")
+        print(secondary_memory)
+        print("\nPAGE TABLES:")
+        print(page_tables)
+        print("\nINTERNAL FRAGMENTATION:")
+        print(internal_fragmentation)
+        print("\nJOB AGE QUEUE:")
+        print(job_age_queue)
+        print("\nJOB TO PAGES MAP:")
+        print(jobs_to_pages_map)
+        print("\nFREE FRAMES:")
+        print(free_frames)
+
+    #If process cannot fit into free frames, Remove oldest process(es) to make space. Move these jobs to secondary memory.
+    else:
+        minimum_frames_to_swap = len(job_pages) - free_frames
+        frames_swapped = 0
+
+        #Swap out jobs until we have enough space
+        while(frames_swapped < minimum_frames_to_swap):
+            job_move = job_age_queue.popleft()
+            pages_to_swap = jobs_to_pages_map[job_move]
+
+            #If frame in main memory contains a page we wish to swap, replace it with None
+            index = 0
+            for frame in main_memory:
+                if(frame in pages_to_swap):
+                    main_memory[index] = None                 
+                index += 1
+
+            #Put pages into secondary memory
+            for page in pages_to_swap:
+                secondary_memory.append(page)
+
+            #Map swapped pages to none in page table
+            for page_table in page_tables:
+                if(page_table == job_move):
+                    for page in page_tables[page_table]:
+                        page_tables[page_table][page] = None
+
+            #Increase frames_swapped and free_frames
+            frames_swapped += len(pages_to_swap)
+            free_frames += len(pages_to_swap)
+
+        #Add new job to main memory
+        job_index = 0
+        page_table = {}
+        for i in range(len(main_memory)):
+            if(main_memory[i] == None):
+                if(job_index == len(job_pages)):
+                    break
+                else:
+                    main_memory[i] = job_pages[job_index]
+                    page_table[job_pages[job_index]] = i
+                    job_index += 1
+        page_tables[job_info[0]] = page_table
+    
+        free_frames -= len(job_pages)
+        job_age_queue.append(job_info[0])
+        print("MAIN MEMORY:")
+        print(main_memory)
+        print("\nSECONDARY MEMORY:")
+        print(secondary_memory)
+        print("\nPAGE TABLES:")
+        print(page_tables)
+        print("\nINTERNAL FRAGMENTATION:")
+        print(internal_fragmentation)
+        print("\nJOB AGE QUEUE:")
+        print(job_age_queue)
+        print("\nJOB TO PAGES MAP:")
+        print(jobs_to_pages_map)
+        print("\nFREE FRAMES:")
+        print(free_frames)
+
+    return(free_frames)
+
+#Function that removes a process from memory. Returns free frames to be modified outside of the function since it's immutable
+def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory):
+    in_main_memory = False
+                    
+    #Determine if job is in main memory or secondary memory
+    for frame in main_memory:
+        if(frame in jobs_to_pages_map[job_info[0]]):
+            in_main_memory = True
+            break
+
+    #If it's in main memory, remove it from main memory
+    remove_index = 0
+    if(in_main_memory == True):
+
+        #Remove job from main memory
+        for frame in main_memory:
+            if(frame in jobs_to_pages_map[job_info[0]]):
+                main_memory[remove_index] = None
+            remove_index += 1  
+    
+        #Modify free frames, remove from existing jobs, remove from job age queue
+        free_frames += len(jobs_to_pages_map[job_info[0]])
+        existing_jobs.remove(job_info[0])
+        job_age_queue.remove(job_info[0])
+    
+        #Delete the job's page table
+        marked_for_deletion = {}
+        for page_table in page_tables:
+            if(page_table == job_info[0]):
+                marked_for_deletion = page_table
+        del page_tables[marked_for_deletion]
+
+        #Remove all of the pages associated with the job from the internal fragmentation dictionary
+        for page in jobs_to_pages_map[job_info[0]]:
+            internal_fragmentation.pop(page)
+
+        #Remove job from jobs_to_pages_map
+        jobs_to_pages_map.pop(job_info[0])
+
+    #If it's in secondary memory, remove from secondary memory
+    else:
+
+        #Remove job from secondary memory
+        for page in jobs_to_pages_map[job_info[0]]:
+            secondary_memory.remove(page)
+
+        #Delete the job's page table
+        for page_table in page_tables:
+            if(page_table == job_info[0]):
+                del page_tables[page_table]
+    
+        #Remove from existing jobs
+        existing_jobs.remove(job_info[0])
+    
+        #Remove all of the pages associated with the job from the internal fragmentation dictionary
+        for page in jobs_to_pages_map[job_info[0]]:
+            internal_fragmentation.pop(page)
+
+        #Remove job from jobs_to_pages map
+        jobs_to_pages_map.pop(job_info[0])
+
+    print("MAIN MEMORY:")
+    print(main_memory)
+    print("\nSECONDARY MEMORY:")
+    print(secondary_memory)
+    print("\nPAGE TABLES:")
+    print(page_tables)
+    print("\nINTERNAL FRAGMENTATION:")
+    print(internal_fragmentation)
+    print("\nJOB AGE QUEUE:")
+    print(job_age_queue)
+    print("\nJOB TO PAGES MAP:")
+    print(jobs_to_pages_map)
+    print("\nFREE FRAMES:")
+    print(free_frames)
+
+    return(free_frames)
 
 #Function that reads job requests and modifies memory appropriately according to the simple paging system
 def main_loop(memory_info_list):
@@ -90,196 +275,20 @@ def main_loop(memory_info_list):
                 elif(int(job_info[1]) < -2):
                     print("ERROR: INVALID COMMAND")
             
-                #If a new process is being added, perform necessary actions to put it in main memory
+                #If a new process is being added, perform necessary actions to put it in main memory by calling add_new_process()
                 elif(job_info[0] not in existing_jobs):
-                    existing_jobs.append(job_info[0])
-                    job_pages = generate_pages(job_info[0], job_info[1], memory_info_list[1])
-
-                    #Map each page to its corresponding internal fragmentation
-                    for i in range(len(job_pages) - 1):
-                        if(i < len(job_pages) - 2):
-                            internal_fragmentation[job_pages[i]] = 0
-                        else:
-                            internal_fragmentation[job_pages[i]] = job_pages[len(job_pages) - 1]
-
-                    #Map the job to a list of its pages
-                    del job_pages[len(job_pages) - 1]
-                    jobs_to_pages_map[job_info[0]] = job_pages
-
-                    #If process can fit into free frames, put pages into memory immediately
-                    if(len(job_pages) <= free_frames):
-                        job_index = 0
-                        page_table = {}
-                        for i in range(len(main_memory)):
-                            if(main_memory[i] == None):
-                                if(job_index == len(job_pages)):
-                                    break
-                                else:
-                                    main_memory[i] = job_pages[job_index]
-                                    page_table[job_pages[job_index]] = i
-                                    job_index += 1
-                        page_tables[job_info[0]] = page_table
-
-                        free_frames -= len(job_pages)
-                        job_age_queue.append(job_info[0])
-                        print("MAIN MEMORY:")
-                        print(main_memory)
-                        print("\nSECONDARY MEMORY:")
-                        print(secondary_memory)
-                        print("\nPAGE TABLES:")
-                        print(page_tables)
-                        print("\nINTERNAL FRAGMENTATION:")
-                        print(internal_fragmentation)
-                        print("\nJOB AGE QUEUE:")
-                        print(job_age_queue)
-                        print("\nJOB TO PAGES MAP:")
-                        print(jobs_to_pages_map)
-                        print("\nFREE FRAMES:")
-                        print(free_frames)
-
-                    #If process cannot fit into free frames, Remove oldest process(es) to make space. Move these jobs to secondary memory.
-                    else:
-                        minimum_frames_to_swap = len(job_pages) - free_frames
-                        frames_swapped = 0
-
-                        #Swap out jobs until we have enough space
-                        while(frames_swapped < minimum_frames_to_swap):
-                            job_move = job_age_queue.popleft()
-                            pages_to_swap = jobs_to_pages_map[job_move]
-
-                            #If frame in main memory contains a page we wish to swap, replace it with None
-                            index = 0
-                            for frame in main_memory:
-                                if(frame in pages_to_swap):
-                                    main_memory[index] = None                 
-                                index += 1
-
-                            #Put pages into secondary memory
-                            for page in pages_to_swap:
-                                secondary_memory.append(page)
-
-                            #Map swapped pages to none in page table
-                            for page_table in page_tables:
-                                if(page_table == job_move):
-                                    for page in page_tables[page_table]:
-                                        page_tables[page_table][page] = None
-
-                            #Increase frames_swapped and free_frames
-                            frames_swapped += len(pages_to_swap)
-                            free_frames += len(pages_to_swap)
-
-                        #Add new job to main memory
-                        job_index = 0
-                        page_table = {}
-                        for i in range(len(main_memory)):
-                            if(main_memory[i] == None):
-                                if(job_index == len(job_pages)):
-                                    break
-                                else:
-                                    main_memory[i] = job_pages[job_index]
-                                    page_table[job_pages[job_index]] = i
-                                    job_index += 1
-                        page_tables[job_info[0]] = page_table
+                    free_frames = add_new_process(existing_jobs, job_info, memory_info_list, internal_fragmentation, jobs_to_pages_map, free_frames, page_tables, job_age_queue, main_memory, secondary_memory)
                     
-                        free_frames -= len(job_pages)
-                        job_age_queue.append(job_info[0])
-                        print("MAIN MEMORY:")
-                        print(main_memory)
-                        print("\nSECONDARY MEMORY:")
-                        print(secondary_memory)
-                        print("\nPAGE TABLES:")
-                        print(page_tables)
-                        print("\nINTERNAL FRAGMENTATION:")
-                        print(internal_fragmentation)
-                        print("\nJOB AGE QUEUE:")
-                        print(job_age_queue)
-                        print("\nJOB TO PAGES MAP:")
-                        print(jobs_to_pages_map)
-                        print("\nFREE FRAMES:")
-                        print(free_frames)
-            
                 #Carries out commands 0, -1, and -2 for already existing jobs
                 elif(job_info[0] in existing_jobs):
 
-                    #If job is already in system, reject
+                    #If job is already in system and is added to memory by user, reject
                     if(int(job_info[1]) != 0 and int(job_info[1]) != -1 and int(job_info[1]) != -2):
                         print("ERROR: JOB IS ALREADY IN THE MEMORY SYSTEM")
 
                     #If command is 0, remove the job from memory
-                    elif(int(job_info[1]) == 0):  
-                        in_main_memory = False
-                    
-                        #Determine if job is in main memory or secondary memory
-                        for frame in main_memory:
-                            if(frame in jobs_to_pages_map[job_info[0]]):
-                                in_main_memory = True
-                                break
-                    
-                        #If it's in main memory, remove it from main memory
-                        remove_index = 0
-                        if(in_main_memory == True):
-
-                            #Remove job from main memory
-                            for frame in main_memory:
-                                if(frame in jobs_to_pages_map[job_info[0]]):
-                                    main_memory[remove_index] = None
-                                remove_index += 1  
-                        
-                            #Modify free frames, remove from existing jobs, remove from job age queue
-                            free_frames += len(jobs_to_pages_map[job_info[0]])
-                            existing_jobs.remove(job_info[0])
-                            job_age_queue.remove(job_info[0])
-                        
-                            #Delete the job's page table
-                            marked_for_deletion = {}
-                            for page_table in page_tables:
-                                if(page_table == job_info[0]):
-                                    marked_for_deletion = page_table
-                            del page_tables[marked_for_deletion]
-
-                            #Remove all of the pages associated with the job from the internal fragmentation dictionary
-                            for page in jobs_to_pages_map[job_info[0]]:
-                                internal_fragmentation.pop(page)
-
-                            #Remove job from jobs_to_pages_map
-                            jobs_to_pages_map.pop(job_info[0])
-                    
-                        #If it's in secondary memory, remove from secondary memory
-                        else:
-
-                            #Remove job from secondary memory
-                            for page in jobs_to_pages_map[job_info[0]]:
-                                secondary_memory.remove(page)
-
-                            #Delete the job's page table
-                            for page_table in page_tables:
-                                if(page_table == job_info[0]):
-                                    del page_tables[page_table]
-                        
-                            #Remove from existing jobs
-                            existing_jobs.remove(job_info[0])
-                        
-                            #Remove all of the pages associated with the job from the internal fragmentation dictionary
-                            for page in jobs_to_pages_map[job_info[0]]:
-                                internal_fragmentation.pop(page)
-
-                            #Remove job from jobs_to_pages map
-                            jobs_to_pages_map.pop(job_info[0])
-
-                        print("MAIN MEMORY:")
-                        print(main_memory)
-                        print("\nSECONDARY MEMORY:")
-                        print(secondary_memory)
-                        print("\nPAGE TABLES:")
-                        print(page_tables)
-                        print("\nINTERNAL FRAGMENTATION:")
-                        print(internal_fragmentation)
-                        print("\nJOB AGE QUEUE:")
-                        print(job_age_queue)
-                        print("\nJOB TO PAGES MAP:")
-                        print(jobs_to_pages_map)
-                        print("\nFREE FRAMES:")
-                        print(free_frames)
+                    elif(int(job_info[1]) == 0):
+                        free_frames = remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory)   
                         break
                 
                     #If command is -1, move job to secondary memory
