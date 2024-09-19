@@ -43,9 +43,11 @@ def main_loop(memory_info_list):
     EXIT = False
     #requests_user
 
-    #If a file is present, execute job requests in file
+    #Main loop
     while(EXIT != True):
-        if(len(memory_info_list) != 2):
+
+        #If a file argument is present, execute requests in the file
+        if(len(memory_info_list) > 2):
 
             requests_file = open(memory_info_list[2], "r")
 
@@ -56,21 +58,37 @@ def main_loop(memory_info_list):
                 line = requests_file.readline()
                 job_info = line.split()
 
+                #job_info = [job ID, Command]
+
+                #If job ID is exit, terminate simulation
                 if(job_info[0] == "exit"):
                     print("You have exited the program")
                     EXIT = True
                     break
 
-                #If Job_ID is "print", print the current state of memory
+                #If Job_ID is "print", print the current state of memory (Complete last)
                 elif(job_info[0] == "print"):
                     print("print current state of memory")
+
+                #If job ID is not castable to an int and is not exit or print, reject request
+                elif(isInt(job_info[0]) == False and (job_info[0] != "exit" or job_info[0] != "print")):
+                     print("ERROR: INVALID COMMAND")
+
+                #If command is not an integer, reject request
+                elif(isInt(job_info[1]) == False):
+                    print("ERROR: COMMAND IS NOT AN INTEGER")
 
                 #If process is too large to fit in main memory, reject the process
                 elif(int(job_info[1]) > (len(main_memory) * int(memory_info_list[1]))):
                     print("ERROR: JOB IS TOO LARGE FOR MAIN MEMORY")
 
+                #If job doesn't yet exist and command 0,-1, or -2 is called, reject request
                 elif(job_info[0] not in existing_jobs and (int(job_info[1]) == 0 or int(job_info[1]) == -1 or int(job_info[1]) == -2)):
                     print("ERROR: CANNOT EXECUTE COMMAND. JOB DOES NOT CURRENTLY EXIST")
+
+                #If command value is invalid, reject request
+                elif(int(job_info[1]) < -2):
+                    print("ERROR: INVALID COMMAND")
             
                 #If a new process is being added, perform necessary actions to put it in main memory
                 elif(job_info[0] not in existing_jobs):
@@ -252,8 +270,8 @@ def main_loop(memory_info_list):
                         print(main_memory)
                         print("\nSECONDARY MEMORY:")
                         print(secondary_memory)
-                        print("\nPAGE TABLE:")
-                        print(page_table)
+                        print("\nPAGE TABLES:")
+                        print(page_tables)
                         print("\nINTERNAL FRAGMENTATION:")
                         print(internal_fragmentation)
                         print("\nJOB AGE QUEUE:")
@@ -267,10 +285,14 @@ def main_loop(memory_info_list):
                     #If command is -1, move job to secondary memory
                     elif(int(job_info[1]) == -1):
                         print("TBC")
+            
+            #Switch to dynamic user requests by deleting file from the list
+            memory_info_list.pop()
 
         #Dynamic User commands
         else:
-            pass
+            print("Job Requests file has finished running, switching to user requests mode")
+            EXIT = True
 
     
 #Obtain memory size, page size, and job requests file from user
