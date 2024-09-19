@@ -380,7 +380,6 @@ def main_loop(memory_info_list):
     job_age_queue = deque()
     free_frames = number_of_frames
     EXIT = False
-    #requests_user
 
     #Main loop
     while(EXIT != True):
@@ -399,15 +398,32 @@ def main_loop(memory_info_list):
 
                 #job_info = [job ID, Command]
 
+                #If request does not contain valid number of arguments, reject request
+                if(len(job_info) > 2 or len(job_info) < 1):
+                    print("ERROR: REQUEST MUST CONTAIN EITHER 1 OR 2 ARGUMENTS")
+
                 #If job ID is exit, terminate simulation
-                if(job_info[0] == "exit"):
+                elif(job_info[0] == "exit"):
                     print("You have exited the program")
                     EXIT = True
                     break
 
                 #If Job_ID is "print", print the current state of memory (Complete last)
                 elif(job_info[0] == "print"):
-                    print("print current state of memory")
+                    print("MAIN MEMORY:")
+                    print(main_memory)
+                    print("\nSECONDARY MEMORY:")
+                    print(secondary_memory)
+                    print("\nPAGE TABLES:")
+                    print(page_tables)
+                    print("\nINTERNAL FRAGMENTATION:")
+                    print(internal_fragmentation)
+                    print("\nJOB AGE QUEUE:")
+                    print(job_age_queue)
+                    print("\nJOB TO PAGES MAP:")
+                    print(jobs_to_pages_map)
+                    print("\nFREE FRAMES:")
+                    print(free_frames)
 
                 #If job ID is not castable to an int and is not exit or print, reject request
                 elif(isInt(job_info[0]) == False and (job_info[0] != "exit" or job_info[0] != "print")):
@@ -457,11 +473,42 @@ def main_loop(memory_info_list):
             memory_info_list.pop()
 
         #Dynamic User commands
-        else:
-            print("Job Requests file has finished running, switching to user requests mode")
-            EXIT = True
+        elif(EXIT != True):
+            request_string =  input("Input your request in the form (Job ID, Command): ")
+            request_list = request_string.split()
 
-    
+            #request_list = [job ID, Command]
+
+            #input error checking
+
+            #If request doesn't contain valid number of arguments, reject request
+            if(len(request_list) > 2 or len(request_list) < 1):
+                print("ERROR: REQUEST MUST CONTAIN EITHER 1 OR 2 ARGUMENTS")
+
+            #If job ID is "exit", terminate simulation
+            elif(request_list[0] == "exit"):
+                print("You have exited the program")
+                EXIT = True
+
+            #If job ID is "print", print current state of memory (Complete Last)
+            elif(request_list[0] == "print"):
+                print("print current state of memory")
+
+            #If job ID is not castable to int and it's not exit or print, reject request
+            elif(isInt(request_list[0]) == False and (request_list[0] != "exit" or request_list[0] != "print")):
+                print("ERROR: INVALID COMMAND")
+
+            #If command is not an integer, reject request
+            elif(isInt(request_list[1]) == False):
+               print("ERROR: COMMAND IS NOT AN INTEGER")
+            
+            #Finish other possibilities
+               
+               
+
+            
+               
+ 
 #Obtain memory size, page size, and job requests file from user
 proceed = True
 memory_info_list = []
