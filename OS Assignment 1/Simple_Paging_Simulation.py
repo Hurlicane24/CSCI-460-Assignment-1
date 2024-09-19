@@ -214,6 +214,49 @@ def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free
 
     return(free_frames)
 
+#Function that suspends a process in main memory (moves it to secondary memory). Returns free_frames so it can be modified outside of function since it's immutable
+def suspend_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info):
+    
+    #If the user tries to suspend a process that is already suspended, reject request
+    if("page_{},1".format(job_info[0]) in secondary_memory):
+        print("ERROR: PROCESS IS ALREADY SUSPENDED")
+    
+    else:
+
+        #Remove pages of process from main_memory and update free_frames
+        for i in range(len(main_memory)):
+            if(main_memory[i] in jobs_to_pages_map[job_info[0]]):
+                main_memory[i] = None
+                free_frames += 1
+
+        #Put pages into secondary memory
+        for page in jobs_to_pages_map[job_info[0]]:
+            secondary_memory.append(page)
+
+        #Map pages to None in page_table
+        for page in page_tables[job_info[0]]:
+            page_tables[job_info[0]][page] = None
+
+        #Remove from job_age_queue
+        job_age_queue.remove(job_info[0])
+
+        print("MAIN MEMORY:")
+        print(main_memory)
+        print("\nSECONDARY MEMORY:")
+        print(secondary_memory)
+        print("\nPAGE TABLES:")
+        print(page_tables)
+        print("\nINTERNAL FRAGMENTATION:")
+        print(internal_fragmentation)
+        print("\nJOB AGE QUEUE:")
+        print(job_age_queue)
+        print("\nJOB TO PAGES MAP:")
+        print(jobs_to_pages_map)
+        print("\nFREE FRAMES:")
+        print(free_frames)
+
+    return(free_frames)
+
 #Function that reads job requests and modifies memory appropriately according to the simple paging system
 def main_loop(memory_info_list):
     number_of_frames = int(int(memory_info_list[0])/int(memory_info_list[1]))
@@ -289,11 +332,14 @@ def main_loop(memory_info_list):
                     #If command is 0, remove the job from memory
                     elif(int(job_info[1]) == 0):
                         free_frames = remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory)   
-                        break
                 
                     #If command is -1, move job to secondary memory
                     elif(int(job_info[1]) == -1):
-                        print("TBC")
+                        free_frames = suspend_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
+                        break
+
+                    elif(int(job_info[1]) == -2):
+                        pass
             
             #Switch to dynamic user requests by deleting file from the list
             memory_info_list.pop()
