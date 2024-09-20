@@ -414,7 +414,7 @@ def main_loop(memory_info_list):
 
         #Dynamic User commands
         elif(EXIT != True):
-            request_string =  input("Input your request in the form (Job ID, Command): ")
+            request_string =  input("Input your request in the form 'Job_ID Command': ")
             request_list = request_string.split()
 
             #request_list = [job ID, Command]
