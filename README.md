@@ -6,7 +6,7 @@ Assignment 1:
 Project Goal:
 The goal of the assignment is to create a memory management simulator that implements a simple paging scheme. Upon startup, the program takes two mandatory command line arguments (memory size, page size) and one optional command line argument (job requests file). If no job requests file is given, the user can dynamically input requests such as putting a new process into main memory, suspending a process, resuming a suspended process, etc. If a job requests file is given, the program will execute all requests in the file, and then allow dynamic requests from the user.
 
-What is Paging?:
+What is Simple Paging?:
 Simple paging is a memory management strategy in which processes are split into equal-sized partitions called "pages", and main memory is split into partitions of the same size call "frames". Each process has a structure known as a page table associated with it that maps each of its pages to the frame it resides in in memory. The benefit of maintaining page tables is that pages of a process need not be contiguous in main memory for the process to function properly. The main downside of paging is that the page size may not be a factor of the process size, which means that the final page of a partiuclar process may contain unused space. Thus, certain frames in memory will be unutilized. This is known as internal fragmentation. It is called "simple" paging because there is no virtual memory. This means that all pages of a process must be in main memory for it to execute.
 
 How to Use the Simulator:
