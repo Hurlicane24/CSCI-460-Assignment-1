@@ -2,6 +2,7 @@ import math
 import numpy as np
 from collections import deque
 import sys
+import pandas as pd
 #py Simple_Paging_Simulation.py 65536 4096 input_requests_1.txt
 
 #Function that checks if a string is castable to an int (returns boolean)
@@ -18,7 +19,6 @@ def isInt(string):
 #--------------------------------------------------------------------- 
 def generate_pages(job_number, job_size, page_size):
     number_of_pages = math.ceil(int(job_size)/int(page_size))
-    print("Number of pages: {}".format(number_of_pages))
     last_page_internal_frag = (number_of_pages - (int(job_size)/int(page_size))) * int(page_size)
     page_list = []
     for i in range(number_of_pages):
@@ -63,21 +63,7 @@ def add_new_process(existing_jobs, job_info, memory_info_list, internal_fragment
 
         free_frames -= len(job_pages)
         job_age_queue.append(job_info[0])
-        print("MAIN MEMORY:")
-        print(main_memory)
-        print("\nSECONDARY MEMORY:")
-        print(secondary_memory)
-        print("\nPAGE TABLES:")
-        print(page_tables)
-        print("\nINTERNAL FRAGMENTATION:")
-        print(internal_fragmentation)
-        print("\nJOB AGE QUEUE:")
-        print(job_age_queue)
-        print("\nJOB TO PAGES MAP:")
-        print(jobs_to_pages_map)
-        print("\nFREE FRAMES:")
-        print(free_frames)
-
+        
     #If process cannot fit into free frames, Remove oldest process(es) to make space. Move these jobs to secondary memory.
     else:
         minimum_frames_to_swap = len(job_pages) - free_frames
@@ -124,27 +110,13 @@ def add_new_process(existing_jobs, job_info, memory_info_list, internal_fragment
     
         free_frames -= len(job_pages)
         job_age_queue.append(job_info[0])
-        print("MAIN MEMORY:")
-        print(main_memory)
-        print("\nSECONDARY MEMORY:")
-        print(secondary_memory)
-        print("\nPAGE TABLES:")
-        print(page_tables)
-        print("\nINTERNAL FRAGMENTATION:")
-        print(internal_fragmentation)
-        print("\nJOB AGE QUEUE:")
-        print(job_age_queue)
-        print("\nJOB TO PAGES MAP:")
-        print(jobs_to_pages_map)
-        print("\nFREE FRAMES:")
-        print(free_frames)
 
     return(free_frames)
 #------------------------------------------------------------------------------------------------------------------------------------------
 
 #Function that removes a process from memory. Returns free frames to be modified outside of the function since it's immutable
 #----------------------------------------------------------------------------------------------------------------------------
-def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory):
+def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory):      
     in_main_memory = False
                     
     #Determine if job is in main memory or secondary memory
@@ -169,7 +141,7 @@ def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free
         job_age_queue.remove(job_info[0])
     
         #Delete the job's page table
-        marked_for_deletion = {}
+        marked_for_deletion = ""
         for page_table in page_tables:
             if(page_table == job_info[0]):
                 marked_for_deletion = page_table
@@ -190,9 +162,11 @@ def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free
             secondary_memory.remove(page)
 
         #Delete the job's page table
+        marked_for_deletion = ""
         for page_table in page_tables:
             if(page_table == job_info[0]):
-                del page_tables[page_table]
+                marked_for_deletion = page_table
+        del page_tables[marked_for_deletion]
     
         #Remove from existing jobs
         existing_jobs.remove(job_info[0])
@@ -203,21 +177,6 @@ def remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free
 
         #Remove job from jobs_to_pages map
         jobs_to_pages_map.pop(job_info[0])
-
-    print("MAIN MEMORY:")
-    print(main_memory)
-    print("\nSECONDARY MEMORY:")
-    print(secondary_memory)
-    print("\nPAGE TABLES:")
-    print(page_tables)
-    print("\nINTERNAL FRAGMENTATION:")
-    print(internal_fragmentation)
-    print("\nJOB AGE QUEUE:")
-    print(job_age_queue)
-    print("\nJOB TO PAGES MAP:")
-    print(jobs_to_pages_map)
-    print("\nFREE FRAMES:")
-    print(free_frames)
 
     return(free_frames)
 #----------------------------------------------------------------------------------------------------------------------------
@@ -248,21 +207,6 @@ def suspend_process(main_memory, secondary_memory, page_tables, internal_fragmen
 
         #Remove from job_age_queue
         job_age_queue.remove(job_info[0])
-
-        print("MAIN MEMORY:")
-        print(main_memory)
-        print("\nSECONDARY MEMORY:")
-        print(secondary_memory)
-        print("\nPAGE TABLES:")
-        print(page_tables)
-        print("\nINTERNAL FRAGMENTATION:")
-        print(internal_fragmentation)
-        print("\nJOB AGE QUEUE:")
-        print(job_age_queue)
-        print("\nJOB TO PAGES MAP:")
-        print(jobs_to_pages_map)
-        print("\nFREE FRAMES:")
-        print(free_frames)
 
     return(free_frames)
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -323,23 +267,6 @@ def resume_process(main_memory, secondary_memory, page_tables, internal_fragment
         #Add resumed process to job age queue
         job_age_queue.append(job_info[0])
 
-        print("MAIN MEMORY:")
-        print(main_memory)
-        print("\nSECONDARY MEMORY:")
-        print(secondary_memory)
-        print("\nPAGE TABLES:")
-        print(page_tables)
-        print("\nINTERNAL FRAGMENTATION:")
-        print(internal_fragmentation)
-        print("\nJOB AGE QUEUE:")
-        print(job_age_queue)
-        print("\nJOB TO PAGES MAP:")
-        print(jobs_to_pages_map)
-        print("\nFREE FRAMES:")
-        print(free_frames)
-
-        return(free_frames)
-
     #If process can fit, simply move it to main memory
     else:
         
@@ -362,22 +289,7 @@ def resume_process(main_memory, secondary_memory, page_tables, internal_fragment
         #Add resumed process to job age queue
         job_age_queue.append(job_info[0])
 
-        print("MAIN MEMORY:")
-        print(main_memory)
-        print("\nSECONDARY MEMORY:")
-        print(secondary_memory)
-        print("\nPAGE TABLES:")
-        print(page_tables)
-        print("\nINTERNAL FRAGMENTATION:")
-        print(internal_fragmentation)
-        print("\nJOB AGE QUEUE:")
-        print(job_age_queue)
-        print("\nJOB TO PAGES MAP:")
-        print(jobs_to_pages_map)
-        print("\nFREE FRAMES:")
-        print(free_frames)
-
-        return(free_frames)
+    return(free_frames)
 #---------------------------------------------------------------------------------------------------------------------------------------------
 
 #Function that reads job requests and modifies memory appropriately according to the simple paging system
@@ -392,6 +304,7 @@ def main_loop(memory_info_list):
     existing_jobs = []
     job_age_queue = deque()
     free_frames = number_of_frames
+    main_memory_dataframe = pd.DataFrame()
     EXIT = False
 
     #Main loop
@@ -405,8 +318,10 @@ def main_loop(memory_info_list):
             #Skip header
             line = requests_file.readline()
 
-            while(line != None):
+            while(line != ""):
                 line = requests_file.readline()
+                if(line == ""):
+                    break
                 job_info = line.split()
 
                 #job_info = [job ID, Command]
@@ -423,20 +338,33 @@ def main_loop(memory_info_list):
 
                 #If Job_ID is "print", print the current state of memory (Complete last)
                 elif(job_info[0] == "print"):
-                    print("MAIN MEMORY:")
-                    print(main_memory)
-                    print("\nSECONDARY MEMORY:")
-                    print(secondary_memory)
-                    print("\nPAGE TABLES:")
-                    print(page_tables)
-                    print("\nINTERNAL FRAGMENTATION:")
-                    print(internal_fragmentation)
-                    print("\nJOB AGE QUEUE:")
-                    print(job_age_queue)
-                    print("\nJOB TO PAGES MAP:")
-                    print(jobs_to_pages_map)
-                    print("\nFREE FRAMES:")
-                    print(free_frames)
+
+                    #Print main memory as a pandas dataframe
+                    main_memory_dataframe = pd.DataFrame(main_memory.copy(), columns=['Main Memory'])
+                    row_names = ['Frame ' + str(i+1) for i in range(len(main_memory_dataframe))]
+                    main_memory_dataframe.index = row_names
+                    for i in range(len(main_memory_dataframe)):
+                        if(main_memory_dataframe.loc["Frame {}".format(i+1), "Main Memory"] == None):
+                            main_memory_dataframe.loc["Frame {}".format(i+1), "Main Memory"] = "Free"
+                    print(main_memory_dataframe)
+
+                    #For each process, print its page table and internal fragmentation
+                    print()
+                    for process in existing_jobs:
+                        print("Process {}\n----------------------".format(process))
+                        print("Internal Fragmentation: {}".format(internal_fragmentation[jobs_to_pages_map[process][-1]]))
+
+                        print("\nPage Table:")
+                        page_table = page_tables[process]
+                        page_table_df = pd.DataFrame(list(page_table.items()), columns=["Pages", "Frames"])
+                        for i in range(len(page_table_df)):
+                            if(page_table_df.loc[i, "Frames"] != None):
+                                page_table_df.loc[i, "Frames"] = page_table_df.loc[i, "Frames"] + 1
+                        if(page_table_df.loc[0, "Frames"] == None):
+                            for i in range(len(page_table_df)):
+                                page_table_df.loc[i, "Frames"] = "In Secondary Memory"
+                        print(page_table_df, "\n----------------------\n")
+
 
                 #If job ID is not castable to an int and is not exit or print, reject request
                 elif(isInt(job_info[0]) == False and (job_info[0] != "exit" or job_info[0] != "print")):
@@ -504,7 +432,32 @@ def main_loop(memory_info_list):
 
             #If job ID is "print", print current state of memory (Complete Last)
             elif(request_list[0] == "print"):
-                print("print current state of memory")
+                
+                #Print main memory as a pandas dataframe
+                main_memory_dataframe = pd.DataFrame(main_memory.copy(), columns=['Main Memory'])
+                row_names = ['Frame ' + str(i+1) for i in range(len(main_memory_dataframe))]
+                main_memory_dataframe.index = row_names
+                for i in range(len(main_memory_dataframe)):
+                    if(main_memory_dataframe.loc["Frame {}".format(i+1), "Main Memory"] == None):
+                        main_memory_dataframe.loc["Frame {}".format(i+1), "Main Memory"] = "Free"
+                print(main_memory_dataframe)
+
+                #For each process, print its page table and internal fragmentation
+                print()
+                for process in existing_jobs:
+                    print("Process {}\n----------------------".format(process))
+                    print("Internal Fragmentation: {}".format(internal_fragmentation[jobs_to_pages_map[process][-1]]))
+
+                    print("\nPage Table:")
+                    page_table = page_tables[process]
+                    page_table_df = pd.DataFrame(list(page_table.items()), columns=["Pages", "Frames"])
+                    for i in range(len(page_table_df)):
+                        if(page_table_df.loc[i, "Frames"] != None):
+                            page_table_df.loc[i, "Frames"] = page_table_df.loc[i, "Frames"] + 1
+                    if(page_table_df.loc[0, "Frames"] == None):
+                        for i in range(len(page_table_df)):
+                            page_table_df.loc[i, "Frames"] = "In Secondary Memory"
+                    print(page_table_df, "\n----------------------\n")
 
             #If job ID is not castable to int and it's not exit or print, reject request
             elif(isInt(request_list[0]) == False and (request_list[0] != "exit" or request_list[0] != "print")):
@@ -515,11 +468,11 @@ def main_loop(memory_info_list):
                print("ERROR: COMMAND IS NOT AN INTEGER")
             
             #If process is too large for main memory, reject process
-            elif(int(request_list[1]) > (len(memory_info_list) * int(memory_info_list[1]))):
+            elif(int(request_list[1]) > (len(main_memory) * int(memory_info_list[1]))):
                 print("ERROR: PROCESS IS TOO LARGE FOR MAIN MEMORY") 
 
             #If process does not exist and the user issues command 0,-1, or -2, reject request
-            elif(request_list[0] not in existing_jobs and (request_list[1] == 0 or request_list[1] == -1 or request_list[1] == -2)):
+            elif(request_list[0] not in existing_jobs and (int(request_list[1]) == 0 or int(request_list[1]) == -1 or int(request_list[1]) == -2)):
                 print("ERROR: CANNOT EXECUTE COMMAND. PROCESS DOES NOT CURRENTLY EXIST")
 
             #If command is less than -2, reject request
@@ -528,7 +481,7 @@ def main_loop(memory_info_list):
 
             #If new process is being added, perform necessary actions to put it into main memory by calling add_new_process()
             elif(request_list[0] not in existing_jobs):
-                free_frames = add_new_process(existing_jobs, job_info, memory_info_list, internal_fragmentation, jobs_to_pages_map, free_frames, page_tables, job_age_queue, main_memory, secondary_memory)
+                free_frames = add_new_process(existing_jobs, request_list, memory_info_list, internal_fragmentation, jobs_to_pages_map, free_frames, page_tables, job_age_queue, main_memory, secondary_memory)
 
             #Carries out commands 0,-1, and -2
             elif(request_list[0] in existing_jobs):
@@ -539,13 +492,13 @@ def main_loop(memory_info_list):
 
                 #If command is 0, remove process from memory
                 elif(int(request_list[1]) == 0):
-                    free_frames = remove_process(main_memory, jobs_to_pages_map, job_info, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory)
+                    free_frames = remove_process(main_memory, jobs_to_pages_map, request_list, existing_jobs, free_frames, job_age_queue, page_tables, internal_fragmentation, secondary_memory)
                 
                 elif(int(request_list[1]) == -1):
-                    free_frames = suspend_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
+                    free_frames = suspend_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, request_list)
 
                 elif(int(request_list[1]) == -2):
-                    free_frames = resume_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, job_info)
+                    free_frames = resume_process(main_memory, secondary_memory, page_tables, internal_fragmentation, jobs_to_pages_map, job_age_queue, free_frames, request_list)
 #--------------------------------------------------------------------------------------------------------
 
 #Obtain memory size, page size, and job requests file from user
@@ -575,8 +528,6 @@ if(len(sys.argv) == 4):
         proceed = False
 
 if(proceed == True):
-    print("Memory Size:", sys.argv[1])
-    print("Page Size:", sys.argv[2])
     if(len(sys.argv) == 3):
         memory_info_list.append(sys.argv[1])
         memory_info_list.append(sys.argv[2])
