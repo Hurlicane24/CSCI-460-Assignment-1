@@ -338,6 +338,8 @@ def main_loop(memory_info_list):
 
                 #If Job_ID is "print", print the current state of memory (Complete last)
                 elif(job_info[0] == "print"):
+                    
+                    print("MEMORY SNAPSHOT\n--------------------------------------------------\n")
 
                     #Print main memory as a pandas dataframe
                     main_memory_dataframe = pd.DataFrame(main_memory.copy(), columns=['Main Memory'])
@@ -364,6 +366,7 @@ def main_loop(memory_info_list):
                             for i in range(len(page_table_df)):
                                 page_table_df.loc[i, "Frames"] = "In Secondary Memory"
                         print(page_table_df, "\n----------------------\n")
+                    print("--------------------------------------------------\n")
 
 
                 #If job ID is not castable to an int and is not exit or print, reject request
@@ -432,6 +435,8 @@ def main_loop(memory_info_list):
 
             #If job ID is "print", print current state of memory (Complete Last)
             elif(request_list[0] == "print"):
+
+                print("MEMORY SNAPSHOT\n--------------------------------------------------\n")
                 
                 #Print main memory as a pandas dataframe
                 main_memory_dataframe = pd.DataFrame(main_memory.copy(), columns=['Main Memory'])
@@ -458,6 +463,7 @@ def main_loop(memory_info_list):
                         for i in range(len(page_table_df)):
                             page_table_df.loc[i, "Frames"] = "In Secondary Memory"
                     print(page_table_df, "\n----------------------\n")
+                print("--------------------------------------------------\n")
 
             #If job ID is not castable to int and it's not exit or print, reject request
             elif(isInt(request_list[0]) == False and (request_list[0] != "exit" or request_list[0] != "print")):
