@@ -1,4 +1,4 @@
-# CSCI-460-Assignments
+# CSCI-460-Assignments (Operating Systems)
 This is a repository containing all of my programming projects from CSCI 460 (Operating Systems). Project descriptions can be found below.
 
 Assignment 1:
